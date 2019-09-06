@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 from requests_kerberos import OPTIONAL, HTTPKerberosAuth
-from num_to_asin import num_to_asin
+
 from constants import COLOR, COLOR_RED
+from num_to_asin import num_to_asin
 
 
 def update_database(database, asin_set, country, fc):
@@ -20,10 +21,8 @@ def update_database(database, asin_set, country, fc):
         if database[sku]["hrv"] is True:               # if is hrv but price not found, get price from amazon.country
             if database[sku]["price"] is None:
                 if sku[0] == "B":                           # if an asin
-                    print(COLOR + f"Scraping {sku} price from amazon.it .")
                     database[sku]["price"] = amz_scrape(sku, country)
                 else:                                       # if not an asin
-                    print(COLOR + f"Converting {sku} to ASIN.")
                     asin = num_to_asin(sku, fc)
                     print(COLOR + f"ASIN found: {asin}")
                     database[sku]["price"] = amz_scrape(asin, country)
@@ -40,6 +39,7 @@ def amz_scrape(asin, country):
     :return:            float or None
     """
     url = f"https://www.amazon.{country}/s?k={asin}"
+    print(COLOR + f"Scraping {asin} price from amazon.it .")
     r = requests.get(url)
     if "Nessun risultato" in r.text:
         print(f"{asin} not found on amazon.{country}")
@@ -52,7 +52,7 @@ def amz_scrape(asin, country):
     price = price.replace(",", ".")         # only for Italian numbers!!!
     try:
         price = float(price)
-        print(COLOR + "Price found.")
+        print(COLOR + f"{asin} price found on amazon.{country}.")
     except ValueError:
         print(COLOR_RED + f"Could not convert price {price} to float from {url}")
         price = None

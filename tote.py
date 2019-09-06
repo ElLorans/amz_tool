@@ -1,5 +1,5 @@
-from num_to_asin import num_to_asin
 from constants import COLOR, COLOR_RED, COLOR_GREEN
+from num_to_asin import num_to_asin
 
 
 class Tote:
@@ -13,9 +13,9 @@ class Tote:
         """
         self.tote_code = tote_code
         self.df_content = df_content        # pd DataFrame
-        self.asins_dict = False             # dict of ASINs in tote
-        self.asins_checked = False          # deep copy of self.asins_dict to count ASINs audited
-        self.missing_asins = False          # deep copy of asins_checked but keys with value == 0 removed
+        self.asins_dict = False             # will become dict of ASINs in tote
+        self.asins_checked = False          # will become deep copy of self.asins_dict to count ASINs audited
+        self.missing_asins = False          # will become deep copy of asins_checked but keys with value == 0 removed
         self.audited = False
 
     def audit(self, escalation_msg, fc):
@@ -26,7 +26,9 @@ class Tote:
         # create dict with ASINs
         self.asins_dict = dict()        # {Scannable ID: Quantity} add duplicates in pd DataFrame
         self.asins_checked = dict()     # deep copy of self.asins_dict
-        for row, elem in enumerate(self.df_content["FN SKU"]):
+
+        # str.rstrip() removes whitespace at end of ASINs
+        for row, elem in enumerate(self.df_content["FN SKU"].str.rstrip()):
             if elem in self.asins_dict:
                 self.asins_dict[elem] += self.df_content["Quantity"][row]
                 self.asins_checked[elem] += self.df_content["Quantity"][row]
@@ -40,7 +42,10 @@ class Tote:
             print(COLOR + f"{asin} : {self.asins_dict[asin]}")
 
         while sum(self.asins_checked.values()) > 0:
-            print(COLOR + "Please scan item or insert 'exit' to stop\n->", end="")
+            print(COLOR + f"{self.tote_code} contains ", end="")
+            print(COLOR_GREEN + f"{sum(self.asins_checked.values())}", end="")
+            print(COLOR + " products that have not been audited. Please scan a product or insert 'exit' to stop.\n->",
+                  end="")
             item = input()
 
             if item.lower() == "exit":
@@ -48,9 +53,9 @@ class Tote:
                     if self.asins_checked[elem] != 0:
                         print(COLOR + f"{elem} : {self.asins_checked[elem]}")
                 print(COLOR + f"are still missing. If these items are not in {self.tote_code}, {escalation_msg}")
-                print(COLOR + f"Do you want to stop auditing {self.tote_code}?(y/n)\n->")
+                print(COLOR + f"Do you want to stop auditing {self.tote_code}?(yes/no)\n->", end="")
                 confirmation = input()
-                if 'y' in confirmation.lower():
+                if confirmation.lower() == "yes":
                     break
                 else:
                     print(COLOR + f"Please keep auditing {self.tote_code}.")
@@ -62,28 +67,29 @@ class Tote:
                     self.asins_checked[item] -= 1
 
                 else:  # elif tote_content[item] == 0:  # over quantity
-                    print(COLOR + "\nERROR!!!")
-                    print(COLOR + f"All the items with this ASIN have been already scanned. {escalation_msg}")
+                    print(COLOR_RED + "\nERROR!!!")
+                    print(COLOR_RED + f"All the items with this ASIN have been already scanned. {escalation_msg}")
 
             else:  # elif item != "exit" and item not in tote_content:
                 try:
                     right_code = num_to_asin(item, fc)
                     if right_code is None:
-                        print(COLOR + f"This product number or ASIN was not recognised. {escalation_msg}")
+                        print(COLOR_RED + f"This product number or ASIN was not recognised. {escalation_msg}")
 
                     elif right_code in self.asins_checked:
                         if self.asins_checked[right_code] > 0:
                             print(COLOR_GREEN + f"{item} converted to {right_code}.\nSUCCESS!!")
                             self.asins_checked[right_code] -= 1
                         else:  # over quantity
-                            print(COLOR + f"All the items with this ASIN have been already scanned {escalation_msg}")
+                            print(COLOR_RED + f"All the items with this ASIN have been already scanned "
+                                              f"{escalation_msg}")
 
                     else:
-                        print(COLOR + f"{item} was recognized as ASIN {right_code}, but this item should not be in "
+                        print(COLOR_RED + f"{item} was recognized as ASIN {right_code}, but this item should not be in "
                               f"{self.tote_code}. {escalation_msg}")
 
                 except BaseException as e:
-                    print(COLOR + f"\nERROR!! {e.message}\n. Wrong ASIN: {item}. {escalation_msg}")
+                    print(COLOR_RED + f"\nERROR!! {e}\n. Wrong ASIN: {item}. {escalation_msg}")
 
         print(COLOR + f"Finished auditing {self.tote_code}")
 
@@ -94,7 +100,8 @@ class Tote:
             answer = False
             while not answer:
                 print(COLOR_RED + f"{self.tote_code} audit was not completed. Please start audit again or start "
-                                  f"escalation procedure. Was audit interrupted because audit FAILED? (y/n)\n->", end="")
+                                  f"escalation procedure. Was audit interrupted because audit FAILED? (yes/no)\n->",
+                      end="")
                 is_failed = input()
                 is_failed = is_failed.lower()
                 if 'y' in is_failed:
@@ -109,8 +116,8 @@ class Tote:
 
                 elif 'n' in is_failed:
                     self.audited = "Interrupted"
-                    print(COLOR + "Why was the audit interrupted (e.g.: @login requested the pallet to be transshipped "
-                          "immediately)?")
+                    print(COLOR + f"At the end of pallet audit, please explain why {self.tote_code} audit was "
+                                  f"interrupted (e.g.: @login requested the pallet to be transshipped immediately).")
                     answer = True
 
 

@@ -1,16 +1,20 @@
 import pandas as pd
-import urllib3
 import requests
+import urllib3
 from requests_kerberos import OPTIONAL, HTTPKerberosAuth
+
 from constants import COLOR
+
 
 def rodeo_query(fc, pallet):      # 3.5-4 seconds for 150 elem
     """
     Get pd DataFrame with info from rodeo about pallet/tote in TS Out.
     :param fc:          str
     :param pallet:      Pallet or Tote are accepted.
-    :return:            df or "No data was found" if status_code = 200, raise_for_status() otherwise.
+    :return:            df or "No data was found" if status_code = 200, "There was an error while connecting to {url}"
+                        otherwise.
     """
+
     url = f"https://rodeo-dub.amazon.com/{fc}/Search?_enabledColumns=on&enabledColumns=ASIN_TITLES&enabledColumns" \
           f"=FC_SKU&enabledColumns=OUTER_SCANNABLE_ID&&searchKey={pallet} "
 
@@ -33,7 +37,8 @@ def rodeo_query(fc, pallet):      # 3.5-4 seconds for 150 elem
             return df
 
         else:
-            return f"No data was found on {url}."
+            return f"No data was found at {url}\nPlease check that {pallet} is correct.\nIf the error persists, " \
+                   f"please check Rodeo status for your FC: {fc}."
 
     else:
         # return resp.raise_for_status()            # to see error
