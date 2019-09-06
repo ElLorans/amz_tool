@@ -1,3 +1,5 @@
+import time
+
 from constants import COLOR
 
 
@@ -13,18 +15,25 @@ def save_xlsx(df, filename):
             df.to_excel(filename, index=False)
             print(COLOR + f"Pallet content has been exported to {filename}")
             break
+
         except PermissionError:
-            print(COLOR + f"Query result cannot be saved because {filename} is already open. Insert a different file "
-                          f"name to try again\n->", end="")
-            filename = input()
-            while len(filename) < 1:
-                print(COLOR + "Insert a valid file name!")
+            time.sleep(2.0)                          # wait. Useful if another instance of the tool is saving the excel
+            try:                                                    # try again
+                df.to_excel(filename, index=False)
+                print(COLOR + f"Pallet content has been exported to {filename}")
+                break
+            except PermissionError:
+                print(COLOR + f"Query result cannot be saved because {filename} is already open. Insert a different "
+                              f"file name to try again\n->", end="")
                 filename = input()
-            if filename[-5:] != '.xlsx':
-                filename += '.xlsx'
+                while len(filename) < 1:
+                    print(COLOR + "Insert a valid file name!")
+                    filename = input()
+                if filename[-5:] != '.xlsx':
+                    filename += '.xlsx'
 
         except BaseException as e:
-            print(COLOR + f"There was an error, please try again. FATAL ERROR: {e.message}")
+            print(COLOR + f"There was an error, please try again. FATAL ERROR: {e}")
             print(COLOR + "Please try with a different file name:\n->")
             while len(filename) < 1:
                 print(COLOR + "Insert a valid file name!")

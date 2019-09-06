@@ -1,5 +1,5 @@
 __title__ = "Ts Sort Out Audit Tool"
-__description__ = "Software Tool to audit Ts Sort Out Audit process"
-__version__ = "0.3"
+__description__ = "Software Tool to audit Transshipment Sort Out Audit process"
+__version__ = "0.6"
 __author__ = "Cerreta, Lorenzo"
 __mail__ = "lcerreta@amazon.it"

@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from requests_kerberos import OPTIONAL, HTTPKerberosAuth
 
+from constants import COLOR
+
 
 def num_to_asin(prod_num, fc):  # 26-32 sec for 150 elem
     """
@@ -18,6 +20,7 @@ def num_to_asin(prod_num, fc):  # 26-32 sec for 150 elem
               "fcmenu-locale": "en_US", "fcmenu-isAdvanced": "true",
               "fcmenu-authMode": "openid", "fcmenu-employeePermissionLevel": ""}
 
+    print(COLOR + f"Converting {prod_num} to ASIN.")
     r = requests.get(url, auth=HTTPKerberosAuth(mutual_authentication=OPTIONAL),
                      cookies=cookie)
 

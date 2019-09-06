@@ -1,9 +1,11 @@
-import pandas as pd
 import json
+
+import pandas as pd
+
 from asin_info import update_database
+from constants import COLOR, COLOR_RED, FOLDER
 from rodeo_query import rodeo_query
 from tote import Tote
-from constants import COLOR, COLOR_RED, FOLDER
 
 
 class Pallet:
@@ -19,15 +21,17 @@ class Pallet:
 
     def get_info(self, country_code):
         """
-        Update and save database.json; add 3 columns (price, hrv, gl) to self.content if is pd.core.frame.DatFrame .
+        Update and save database.json; add 3 columns (price, hrv, gl) to self.content if is pd.core.frame.DataFrame .
         :param country_code:    str (e.g.: "it")
         :return:                None
         """
         if type(self.content) is not pd.core.frame.DataFrame:
-            print(COLOR + self.content)
+            print(COLOR_RED + self.content)
+
         else:
             print(COLOR + "\nData downloaded from Rodeo. Getting prices, hrv and gl from FcResearch.\n")
-            asin_set = set(self.content["FN SKU"])
+            asin_set = set(self.content["FN SKU"])          # remove duplicates
+
             self.database = update_database(self.database, asin_set, country_code, self.fc)
             print(COLOR + "\nData downloaded.")
 
@@ -37,6 +41,7 @@ class Pallet:
             with open(file, "w") as json_write:
                 json.dump(self.database, json_write)
             print(COLOR + f"{file} updated.")
+
             prices = {asin: self.database[asin]["price"] for asin in asin_set}
             hrvs = {asin: self.database[asin]["hrv"] for asin in asin_set}
             gl = {asin: self.database[asin]["gl"] for asin in asin_set}
@@ -53,7 +58,7 @@ class Pallet:
         """
         if type(self.content) is pd.core.frame.DataFrame:
             hrv_prices = self.content.loc[self.content["hrv"] == True, "list_price"]
-            hrv_tot_price = hrv_prices.replace("", 0).sum()
+            hrv_tot_price = hrv_prices.replace("", 0).sum()     # None values are already ignored by .sum()
             if hrv_tot_price > 500:
                 priority = "High"
             elif hrv_tot_price > 300:
@@ -65,10 +70,16 @@ class Pallet:
             return priority
 
     def audit(self, escalation_msg):
+        """
+        Handle audit process by creating an instance of Tote class for every relevant tote.
+        :param escalation_msg: str with error message
+        :return:               None
+        """
         if type(self.content) is pd.core.frame.DataFrame:
+            self.content["Pallet_Priority"] = self.priority
+
             if True not in self.content["hrv"].values:
                 print(COLOR + f"There are no totes containing HRV in {self.pallet_code}.")
-                self.content["Pallet_Priority"] = self.priority
                 self.content["Audit_Result"] = "Not needed"
                 self.content["Comment"] = "Not needed"
                 # print(df["hrv"])
@@ -79,11 +90,10 @@ class Pallet:
 
                 # audit_checklist = {"tsX..." : class Tote(tsX...), ... }  dict with tote codes and class Tote
                 audit_checklist = {tote_code: Tote(tote_code, self.content.loc[self.content["Scannable ID"] ==
-                                                                               tote_code]) for tote_code in
-                                   self.relevant_totes}
+                                   tote_code]) for tote_code in self.relevant_totes}
+
                 # is_audited = {"tsX..." : False, "tsX...": "Passed", ...} dict with audit result.
-                # Keep track if need to audit other totes
-                is_audited = {tote: False for tote in audit_checklist}
+                is_audited = {tote: False for tote in audit_checklist}         # Keep track if need to audit other totes
 
                 while False in is_audited.values():
                     print(COLOR + "Please insert exit to leave menu or scan one among:")
@@ -94,28 +104,26 @@ class Pallet:
                     auditing = input()
 
                     if auditing.lower() == "exit":
-                        right_answer = False  # wait for valid answer
+                        right_answer = False                # used for while loop: wait for valid answer
 
                         while not right_answer:
                             for tote_code in audit_checklist:
                                 if audit_checklist[tote_code].audited is False:
                                     print(COLOR + f"Tote: {tote_code}")
 
-                            print(COLOR + "Have not been audited. Are you sure you want to interrupt auditing?(y/n)\n"
-                                          "->", end="")
+                            print(COLOR + "Have not been audited. Are you sure you want to interrupt auditing?(yes/no)"
+                                          "\n->", end="")
                             confirm = input()
-                            confirm = confirm.lower()
-                            if 'y' in confirm:
+                            if confirm.lower() == "yes":
                                 print(COLOR_RED + f"{self.pallet_code} audit was not completed. Please start audit "
-                                                  f"again or start escalation procedure. Was audit interrupted because a"
-                                                  f" tote was missing? (y/n)\n->")
+                                                  f"again or start escalation procedure. Was audit interrupted because "
+                                                  f"a tote was missing? (yes/no)\n->", end="")
                                 is_failed = input()
-                                is_failed = is_failed.lower()
-                                if 'y' in is_failed:
-                                    print(COLOR + "Please insert a comment stating also which tote was missing.")
+                                if is_failed.lower() == "yes":
                                     for tote_code in audit_checklist:
                                         if audit_checklist[tote_code].audited is False:
                                             audit_checklist[tote_code].audited = "Tote missing"
+                                            print(COLOR_RED + f"{tote_code} is registered as missing.")
                                     for tote_code in is_audited:
                                         if is_audited[tote_code] is False:
                                             is_audited[tote_code] = "Tote missing"
@@ -135,12 +143,6 @@ class Pallet:
                                 print(COLOR + "Audit has not been interrupted.")
                                 break
 
-                        self.content["Audit_Result"] = self.content["Scannable ID"].map(is_audited)
-                        self.content["Audit_Result"] = self.content["Audit_Result"].fillna("No Audit Needed")
-                        print(COLOR + "->", end="")
-                        self.comment = input()
-                        self.content["Comment"] = self.comment
-
                     elif auditing not in self.relevant_totes:
                         print(COLOR_RED + f"{auditing} is not a tote containing HRV.")
 
@@ -148,8 +150,8 @@ class Pallet:
                         audit_checklist[auditing].audit(escalation_msg, self.fc)
                         is_audited[auditing] = audit_checklist[auditing].audited
 
-                print(COLOR + "Insert a brief comment. (WATCH OUT: you will not be able to modify the comment!)\n->",
-                      end="")
+                print(COLOR + "Insert a brief comment. If someone showed suspicious behaviour, please signal it here"
+                              " (WATCH OUT: you will not be able to modify the comment!).\n->", end="")
                 comment = input()
                 self.comment = comment
                 self.content["Comment"] = self.comment
