@@ -9,21 +9,30 @@ from tote import Tote
 
 
 class Pallet:
-    def __init__(self, fc, pallet_code, database, country_code):
+    """
+    Create Pallet instance with all infos and self.audit() method to handle audit process.
+    """
+    def __init__(self, fc, pallet_code, database, domain):
+        """
+        :param fc:              str of FC (e.g.: "MXP5")
+        :param pallet_code:     str of SCANNABLE OUTER ID (e.g.: "PALLET_a34sfe4_Z")
+        :param database:        dict {asin: {"price": float, "hrv": bool, "gl": str}, ...}
+        :param domain:          str of relevant amazon website's domain (e.g.: "it", "com", "fr", etc. )
+        """
         self.fc = fc
         self.pallet_code = pallet_code
         self.database = database  # dict {asin: {"price": float, "hrv": bool, "gl": str}, ...}
         self.content = rodeo_query(self.fc, self.pallet_code)
-        self.get_info(country_code)  # add price, hrv and gl to self.content
+        self.get_info(domain)  # add price, hrv and gl to self.content
         self.priority = self.get_audit_priority()
         self.relevant_totes = "Totes not loaded yet."  # set of totes containing HRV
         self.comment = None
 
-    def get_info(self, country_code):
+    def get_info(self, domain):
         """
         Update and save database.json; add 3 columns (price, hrv, gl) to self.content if is pd.core.frame.DataFrame .
-        :param country_code:    str (e.g.: "it")
-        :return:                None
+        :param domain:    str of relevant amazon website's domain (e.g.: "it", "com", "fr", etc. )
+        :return:          None
         """
         if type(self.content) is not pd.core.frame.DataFrame:
             print(COLOR_RED + self.content)
@@ -32,7 +41,7 @@ class Pallet:
             print(COLOR + "\nData downloaded from Rodeo. Getting prices, hrv and gl from FcResearch.\n")
             asin_set = set(self.content["FN SKU"])          # remove duplicates
 
-            self.database = update_database(self.database, asin_set, country_code, self.fc)
+            self.database = update_database(self.database, asin_set, domain, self.fc)
             print(COLOR + "\nData downloaded.")
 
             print(COLOR + "Updating database.json .")
@@ -76,12 +85,14 @@ class Pallet:
         :return:               None
         """
         if type(self.content) is pd.core.frame.DataFrame:
+            no_audit_needed = "No Audit Needed"
+            no_comment_needed = "No Comment Needed"
             self.content["Pallet_Priority"] = self.priority
 
             if True not in self.content["hrv"].values:
                 print(COLOR + f"There are no totes containing HRV in {self.pallet_code}.")
-                self.content["Audit_Result"] = "Not needed"
-                self.content["Comment"] = "Not needed"
+                self.content["Audit_Result"] = no_audit_needed
+                self.content["Comment"] = no_comment_needed
                 # print(df["hrv"])
             else:
                 # get pd Series of totes containing HRV
@@ -156,4 +167,4 @@ class Pallet:
                 self.comment = comment
                 self.content["Comment"] = self.comment
                 self.content["Audit_Result"] = self.content["Scannable ID"].map(is_audited)
-                self.content["Audit_Result"] = self.content["Audit_Result"].fillna("No Audit Needed")
+                self.content["Audit_Result"] = self.content["Audit_Result"].fillna(no_audit_needed)

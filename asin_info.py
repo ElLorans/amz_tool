@@ -15,7 +15,6 @@ def update_database(database, asin_set, country, fc):
     :param fc:          str (e.g.: "MXP5")
     :return:            dict {asin: {"price": float, "hrv": Bool, "gl": str}, ... }
     """
-    # for sku in self.asin_set:
     for sku in asin_set.difference(database):           # get SKUs not in database
         database[sku] = fc_research(sku, fc)
         if database[sku]["hrv"] is True:               # if is hrv but price not found, get price from amazon.country
@@ -35,26 +34,30 @@ def amz_scrape(asin, country):
     Scrape price of ASIN on amazon.country . Only ASINs are sure to work.
     :param asin:        str
     :param country:     str (e.g.: "it")
-    :param country:     str (e.g.: "MXP5")
     :return:            float or None
     """
     url = f"https://www.amazon.{country}/s?k={asin}"
-    print(COLOR + f"Scraping {asin} price from amazon.it .")
+    print(COLOR + f"Scraping {asin} price from amazon.{country} .")
     r = requests.get(url)
     if "Nessun risultato" in r.text:
-        print(f"{asin} not found on amazon.{country}")
+        print(COLOR_RED + f"{asin} not found on amazon.{country} .")
         return None
+
     scraped = BeautifulSoup(r.text, features="lxml")
-    price_tag = scraped.find_all('span', {'class': 'a-offscreen'})
-    string = price_tag[0].text
-    price = string.replace("\xa0€", "")
-    price = price.replace(".", "")          # only for Italian numbers!!!
-    price = price.replace(",", ".")         # only for Italian numbers!!!
+    price_tag = scraped.find_all("span", {"class": "a-price-whole"})
+    price = price_tag[0].text
+
+    if "." in price[-3:]:
+        price = price.replace(",", "")
+    elif "," in price[-3:]:
+        price = price.replace(".", "")
+        price = price.replace(",", ".")
+
     try:
         price = float(price)
-        print(COLOR + f"{asin} price found on amazon.{country}.")
+        print(COLOR + f"{asin} price found on amazon.{country} .")
     except ValueError:
-        print(COLOR_RED + f"Could not convert price {price} to float from {url}")
+        print(COLOR_RED + f"Could not convert price {price} to float from {url} .")
         price = None
     return price
 
@@ -102,8 +105,36 @@ def fc_research(asin, fc):  # 26-32 sec for 150 elem
         return {"price": price, "hrv": hrv, "gl": gl}
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # inp = input("Insert ASIN ->")
-    inp = "X000JDSDD7"
-    fc = "MXP5"
-    print(fc_research(inp, fc))
+    # inp = "X000JDSDD7"
+    # inp = "B07HLB8Q8Q"      # Iphone XS Max (IT). Price > 1000 for testing
+    # inp = "B07PW3DC9L"      # Iphone XS Max (US). Price > 1000 for testing
+    # fc = "MXP5"
+    # print("Testing function fc_researc(inp, fc).")
+    # print(f"inp = {inp}")
+    # print(f"fc = {fc}")
+    # print(fc_research(inp, fc))
+    #
+    # print("\n")
+    #
+    # print("Testing function num_to_asin(inp, fc).")
+    # print(f"inp = {inp}")
+    # asin = num_to_asin(inp, "ATL2")
+    # print(f"{asin}")
+    #
+    # print("\n")
+    #
+    # country = "it"
+    # print("Testing function amz_scrape(inp, country) with NOT AN ASIN.")
+    # print(f"inp = {inp}")
+    # print(f"country = {country}")
+    # print(amz_scrape(inp, country))
+    #
+    # print("\n")
+    #
+    # country = "com"
+    # print("Testing function amz_scrape(inp, country) with AN ASIN.")
+    # print(f"inp = {asin}")
+    # print(f"country = {country}")
+    # print(amz_scrape(asin, country))
