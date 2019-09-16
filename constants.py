@@ -10,6 +10,8 @@ import pandas as pd
 from colorama import Fore, Style
 
 from get_fc import get_fc
+from get_valid_sites import get_valid_sites
+from version import __title__
 
 
 def load_logs():
@@ -18,11 +20,6 @@ def load_logs():
     where the main file is stored, generate empty pd DataFrame and empty dict.
     :return: (pd.DataFrame, dict())
     """
-    try:
-        os.mkdir(FOLDER)                        # create Folder for reports
-    except FileExistsError:
-        pass
-
     try:
         super_log = pd.read_excel(f"{FOLDER}TsOutAuditsLog.xlsx")
     except FileNotFoundError:
@@ -49,30 +46,63 @@ def ask_badge():
             print(COLOR_RED + "Invalid badge. Please try again.")
 
 
-def ask_fc():
+def download_fc(fc, folder):
+    print(COLOR_RED + f"{fc} not recognized. Downloading valid FCs from https://rodeo-dub.amazon.com .")
+    sites = get_valid_sites(folder)
+    if fc in sites:
+        return fc
+    else:
+        print(COLOR_RED + f"{fc} is not recognized. Please insert site again. If the problem persists, "
+                          "please contact an administrator.")
+        return None
+
+
+def ask_fc(folder):
     while True:
         default_fc = get_fc(os.getlogin())
         print(COLOR + f"Are you auditing Transshipment Out in {default_fc}?(yes/no)\n->", end="")
-        is_default_fc_correct = input().lower()    # colorama doesn't work with input, so need to split input from print
-        if is_default_fc_correct.lower() == "yes":
+        is_default_fc_correct = input().lower()   # colorama doesn't work with input, so need to split input from print
+        if is_default_fc_correct == "yes":
             fc = default_fc
             return fc
-        elif is_default_fc_correct.lower() == "no":
+
+        elif is_default_fc_correct == "no":
             print(COLOR + "Please provide the site in which you are auditing.\n->", end="")
             fc = input().upper()
-            if len(fc) == 4:
+
+            try:
+                with open(folder + "sites.json") as json_file:
+                    sites = json.load(json_file)
+                if fc in sites:
+                    return fc
+
+                else:
+                    fc = download_fc(fc, folder)
+                    if fc is not None:
+                        return fc
+
+            except FileNotFoundError:
+                fc = download_fc(fc, folder)
+                if fc is not None:
+                    return fc
+
+            except:
+                print(COLOR_RED + f"ERROR: impossible to check if {fc} is a valid site. If {fc} is not correct, "
+                                  f"please restart {__title__} .")
                 return fc
-            else:
-                print(COLOR_RED + "This site is not recognized. Please insert site again. If the problem persists, "
-                                  "please contact an administrator.")
+
         else:
             print(COLOR_RED + "Invalid answer. Please insert yes or no.")
 
 
 def ask_amz_domain():
-    domains = ("it", "cn", "in", "jp", "sg", "tr", "ae", "fr", "de", "nl", "es", "uk", "ca", "mx", "com", "au", "br")
     while True:
-        print(COLOR + "Please provide the domain of the relevant amazon website (fr, it, com etc.).\n->", end="")
+        domains = ('ae', 'cn', 'in', 'ca', 'co.uk', 'com.br', None, 'fr', 'es', 'de', 'it', 'co.jp', 'com.mx', 'sg',
+                   'com')
+
+        print(COLOR + "Please provide the domain of the relevant amazon website.\n(E.g.: if the FC is in Italy, "
+                      "amazon.it is the relevant amazon website, so insert: it ; if the FC is in the US, amazon.com is "
+                      "the relevant website, so insert: com ; etc.)\n->", end="")
         domain = input().lower()
 
         if domain in domains:

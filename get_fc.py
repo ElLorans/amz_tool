@@ -1,26 +1,9 @@
+__author__ = "jabaker"
+
+
 import requests
 import urllib3
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-
-
-def requests_retry_session(retries=10,
-                           backoff_factor=0.3,
-                           status_forcelist=(500, 502, 503, 504),
-                           session=None):
-    session = session or requests.Session()
-
-    retry = Retry(total=retries,
-                  read=retries,
-                  connect=retries,
-                  backoff_factor=backoff_factor,
-                  status_forcelist=status_forcelist)
-
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    return session
 
 
 def get_fc(user: str) -> str:
@@ -33,7 +16,8 @@ def get_fc(user: str) -> str:
 
     urllib3.disable_warnings()  # prevent warnings for unverified request
 
-    with requests_retry_session() as req:
+    # with requests_retry_session() as req:
+    with requests.Session() as req:
         resp = req.get(url,
                        timeout=30,
                        verify=False,

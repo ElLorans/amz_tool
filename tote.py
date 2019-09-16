@@ -54,8 +54,8 @@ class Tote:
                         print(COLOR + f"{elem} : {self.asins_checked[elem]}")
                 print(COLOR + f"are still missing. If these items are not in {self.tote_code}, {escalation_msg}")
                 print(COLOR + f"Do you want to stop auditing {self.tote_code}?(yes/no)\n->", end="")
-                confirmation = input()
-                if confirmation.lower() == "yes":
+                confirmation = input().strip().lower()
+                if confirmation == "yes":
                     break
                 else:
                     print(COLOR + f"Please keep auditing {self.tote_code}.")

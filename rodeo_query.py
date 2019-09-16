@@ -1,3 +1,6 @@
+__author__ = "jabaker"
+
+
 import pandas as pd
 import requests
 import urllib3
