@@ -16,7 +16,7 @@ from constants import ask_badge, ask_amz_domain, ask_fc, load_logs, ESCALATION_M
 from create_report import create_report, create_bug_report
 from get_valid_sites import get_valid_sites
 from pallet import Pallet
-from version import __title__
+from version import __title__, __mail__
 
 
 def main(fc, prices_db, domain, excel_file, badge):
@@ -59,7 +59,7 @@ def main(fc, prices_db, domain, excel_file, badge):
 
         except BaseException as basic_error:
             generic_error = traceback.format_exc()
-            print(COLOR_RED + f"\nFATAL ERROR: {basic_error}.\nPlease signal the bug to lcerreta@amazon.it and start "
+            print(COLOR_RED + f"\nFATAL ERROR: {basic_error}.\nPlease signal the bug to {__mail__} and start "
                               f"again {pallet_code}'s audit.")
             create_bug_report(pallet_code, generic_error)
 
@@ -86,23 +86,27 @@ if __name__ == "__main__":
 
         except BaseException as e:
             error = traceback.format_exc()
-            print(COLOR_RED + f"\nFATAL ERROR: {e}.\nPlease signal the bug to lcerreta@amazon.it .")
+            print(COLOR_RED + f"\nFATAL ERROR: {e}.\nPlease signal the bug to {__mail__} .")
             create_bug_report("LOADING CONSTANTS", error)
 
-    while True:
+    while True:                 # ask FC confirmation and checks if FC is valid
         try:
             with open(FOLDER + "sites.json") as json_sites:
                 sites_to_domain = json.load(json_sites)
             DOMAIN = sites_to_domain[FC]
-            print(COLOR + f"Do you want to download prices from https://www.amazon.{DOMAIN}/ ?(yes/no)\n->", end="")
-            confirmation = input().lower()
-            if confirmation == "yes":
-                break
-            elif confirmation == "no":
+            if DOMAIN is None:
                 DOMAIN = ask_amz_domain()
                 break
             else:
-                print(COLOR_RED + "This answer is not valid. Please insert yes or no.")
+                print(COLOR + f"Do you want to download prices from https://www.amazon.{DOMAIN}/ ?(yes/no)\n->", end="")
+                confirmation = input().lower()
+                if confirmation == "yes":
+                    break
+                elif confirmation == "no":
+                    DOMAIN = ask_amz_domain()
+                    break
+                else:
+                    print(COLOR_RED + "This answer is not valid. Please insert yes or no.")
 
         except FileNotFoundError:
             print(COLOR_RED + "sites.json not found.")
@@ -112,7 +116,7 @@ if __name__ == "__main__":
             DOMAIN = ask_amz_domain()
             break
 
-    while True:
+    while True:                     # ask for pallet manifest label
         updates = main(FC, prices_database, DOMAIN, super_log, BADGE)
 
         if type(updates) is tuple and len(updates) == 2:
