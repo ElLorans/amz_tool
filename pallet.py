@@ -66,16 +66,19 @@ class Pallet:
         :return:     str
         """
         if type(self.content) is pd.core.frame.DataFrame:
-            hrv_prices = self.content.loc[self.content["hrv"] == True, "list_price"]
-            hrv_tot_price = hrv_prices.replace("", 0).sum()     # None values are already ignored by .sum()
-            if hrv_tot_price > 500:
-                priority = "High"
-            elif hrv_tot_price > 300:
-                priority = "Medium"
-            elif len(hrv_prices) > 0:
-                priority = "Low"
-            else:
+            if True not in self.content.values:
                 priority = "Not relevant"
+            else:
+                only_hrv = self.content.loc[self.content["hrv"] == True]
+                # Replace empty cells with 0 to avoid errors
+                hrv_value_series = only_hrv["list_price"].replace("", 0) * only_hrv["Quantity"]
+                hrv_value = hrv_value_series.sum()
+                if hrv_value > 500:
+                    priority = "High"
+                elif hrv_value > 300:
+                    priority = "Medium"
+                else:
+                    priority = "Low"
             return priority
 
     def audit(self, escalation_msg):
@@ -168,3 +171,26 @@ class Pallet:
                 self.content["Comment"] = self.comment
                 self.content["Audit_Result"] = self.content["Scannable ID"].map(is_audited)
                 self.content["Audit_Result"] = self.content["Audit_Result"].fillna(no_audit_needed)
+
+
+if __name__ == "__main__":
+    print("Testing Pallet.get_audit_priority()")
+    test = {"ASIN": ["A", "B", "C"], "Quantity": [1, 2, 3], "hrv": [True, False, True], "list_price": [1, 10, 2]}
+    test = pd.DataFrame(test)
+    print(test)
+    if True not in test.values:
+        priorit = "Not relevant"
+    else:
+        hrv_only = test.loc[test["hrv"] == True]
+        # Replace empty cells with 0 to avoid errors
+        hrv_value_series = hrv_only["list_price"].replace("", 0) * hrv_only["Quantity"]
+        hrv_value = hrv_value_series.sum()
+        if hrv_value > 500:
+            priorit = "High"
+        elif hrv_value > 300:
+            priorit = "Medium"
+        else:
+            priorit = "Low"
+
+    print(f"Test total hrv value is {hrv_value}\nTest priority is {priorit}.")
+    breakpoint()

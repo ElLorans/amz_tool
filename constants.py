@@ -49,26 +49,22 @@ def ask_badge():
 def download_fc(fc, folder):
     print(COLOR_RED + f"{fc} not recognized. Downloading valid FCs from https://rodeo-dub.amazon.com .")
     sites = get_valid_sites(folder)
-    if fc in sites:
-        return fc
-    else:
-        print(COLOR_RED + f"{fc} is not recognized. Please insert site again. If the problem persists, "
-                          "please contact an administrator.")
-        return None
+    return sites
 
 
 def ask_fc(folder):
     while True:
         default_fc = get_fc(os.getlogin())
         print(COLOR + f"Are you auditing Transshipment Out in {default_fc}?(yes/no)\n->", end="")
-        is_default_fc_correct = input().lower()   # colorama doesn't work with input, so need to split input from print
+        # colorama doesn't work with input, so need to split input from print
+        is_default_fc_correct = input().strip().lower()
         if is_default_fc_correct == "yes":
             fc = default_fc
             return fc
 
         elif is_default_fc_correct == "no":
             print(COLOR + "Please provide the site in which you are auditing.\n->", end="")
-            fc = input().upper()
+            fc = input().strip().upper()
 
             try:
                 with open(folder + "sites.json") as json_file:
@@ -77,9 +73,14 @@ def ask_fc(folder):
                     return fc
 
                 else:
-                    fc = download_fc(fc, folder)
-                    if fc is not None:
+                    sites = download_fc(fc, folder)
+                    if fc in sites:
                         return fc
+                    else:
+                        print(COLOR_RED + f"{fc} is not recognized. Are you sure {fc} is correct?(yes/no)\n->", end="")
+                        confirm = input().strip().lower()
+                        if confirm == "yes":
+                            return fc
 
             except FileNotFoundError:
                 fc = download_fc(fc, folder)
@@ -103,14 +104,14 @@ def ask_amz_domain():
         print(COLOR + "Please provide the domain of the relevant amazon website.\n(E.g.: if the FC is in Italy, "
                       "amazon.it is the relevant amazon website, so insert: it ; if the FC is in the US, amazon.com is "
                       "the relevant website, so insert: com ; etc.)\n->", end="")
-        domain = input().lower()
+        domain = input().strip().lower()
 
         if domain in domains:
             return domain
         else:
             print(COLOR_RED + f"This domain is not recognized. Are you sure {domain} is correct?(yes/no)\n->",
                   end="")
-            confirmation = input().lower()
+            confirmation = input().strip().lower()
             if confirmation == "yes":
                 return domain
 
