@@ -1,4 +1,4 @@
-﻿altgraph==0.16.1
+altgraph==0.16.1
 asn1crypto==0.24.0
 beautifulsoup4==4.8.0
 bs4==0.0.1
@@ -21,7 +21,7 @@ PyInstaller==3.6
 python-dateutil==2.8.0
 pytz==2019.2
 pywin32-ctypes==0.2.0
-requests==2.22.0
+requests==2.31.0
 requests-kerberos==0.12.0
 six==1.12.0
 soupsieve==1.9.2
