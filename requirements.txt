@@ -2,7 +2,7 @@ altgraph==0.16.1
 asn1crypto==0.24.0
 beautifulsoup4==4.8.0
 bs4==0.0.1
-certifi==2023.7.22
+certifi==2024.7.4
 cffi==1.12.3
 chardet==3.0.4
 colorama==0.4.1
