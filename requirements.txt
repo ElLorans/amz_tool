@@ -24,7 +24,7 @@ pywin32-ctypes==0.2.0
 requests>=2.32.0
 requests-kerberos==0.12.0
 six==1.12.0
-soupsieve==1.9.2
+soupsieve==2.8.4
 urllib3==2.7.0
 winkerberos==0.7.0
 xlrd==1.2.0
